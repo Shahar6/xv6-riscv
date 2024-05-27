@@ -55,6 +55,7 @@ procinit(void)
       initlock(&p->lock, "proc");
       p->state = UNUSED;
       p->kstack = KSTACK((int) (p - proc));
+      p->affinity_mask = 0;
   }
 }
 
@@ -145,6 +146,7 @@ found:
   memset(&p->context, 0, sizeof(p->context));
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
+  p->affinity_mask = 0;
 
   return p;
 }
@@ -168,6 +170,7 @@ freeproc(struct proc *p)
   p->chan = 0;
   p->killed = 0;
   p->xstate = 0;
+  p->affinity_mask = 0;
   p->state = UNUSED;
 }
 
@@ -295,6 +298,8 @@ fork(void)
     return -1;
   }
   np->sz = p->sz;
+  // task5 copy affinity mask (can be done in uvmcopy instead)
+  np->affinity_mask = p->affinity_mask;
 
   // copy saved user registers.
   *(np->trapframe) = *(p->trapframe);
@@ -451,13 +456,15 @@ scheduler(void)
   for(;;){
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
-
+    int cid = cpuid();
+    int cid_mask = 1 << cid;
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
-      if(p->state == RUNNABLE) {
+      if(p->state == RUNNABLE && (p->affinity_mask == 0 || ((p->affinity_mask & cid_mask) > 0))) {
         // Switch to chosen process.  It is the process's job
         // to release its lock and then reacquire it
         // before jumping back to us.
+        printf("PID: %d, CPUID: %d\n",p->pid, cid);
         p->state = RUNNING;
         c->proc = p;
         swtch(&c->context, &p->context);

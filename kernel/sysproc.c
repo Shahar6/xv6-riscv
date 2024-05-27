@@ -89,3 +89,12 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+uint64
+sys_set_affinity_mask(void)
+{
+  int mask;
+  argint(0, &mask);
+  myproc()->affinity_mask = mask;
+  return 0;
+}
