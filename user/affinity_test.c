@@ -6,12 +6,13 @@ int
 main(int argc, char *argv[])
 {
   int i;
-  i=0b11;
+  i=0b101;
   set_affinity_mask(i);
   int pid = getpid();
+  printf("pid: %d\n", pid);
   for(;;){
-    printf("pid: %d\n", pid);
     pid = getpid();
+    //printf("pid: %d\n", pid);
   }
   exit(0);
 }
