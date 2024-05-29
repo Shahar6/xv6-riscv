@@ -9,7 +9,7 @@ main(int argc, char *argv[])
   i=0b101;
   set_affinity_mask(i);
   int pid = getpid();
-  printf("pid: %d\n", pid);
+  printf("affinity_test PID: %d\n", pid);
   for(;;){
     pid = getpid();
     //printf("pid: %d\n", pid);
