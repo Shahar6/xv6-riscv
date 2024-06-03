@@ -132,6 +132,9 @@ UPROGS=\
 	$U/_grind\
 	$U/_wc\
 	$U/_affinity_test\
+	$U/_goodbye\
+	$U/_memsize_test\
+	$U/_helloworld\
 	$U/_zombie\
 
 fs.img: mkfs/mkfs README $(UPROGS)
