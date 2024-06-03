@@ -503,6 +503,16 @@ sched(void)
     panic("sched running");
   if(intr_get())
     panic("sched interruptible");
+  
+  int curr_mask = p->effective_affinity_mask;
+  int cid = cpuid();
+  int cid_mask = 1 << cid;
+  if(curr_mask == 0 && p->affinity_mask == 0)
+    curr_mask = 0b111;
+  else{
+    curr_mask = p->affinity_mask;
+  }
+  p->effective_affinity_mask = curr_mask - cid_mask;
 
   intena = mycpu()->intena;
   swtch(&p->context, &mycpu()->context);
@@ -516,15 +526,6 @@ yield(void)
   struct proc *p = myproc();
   acquire(&p->lock);
   p->state = RUNNABLE;
-  int curr_mask = p->effective_affinity_mask;
-  int cid = cpuid();
-  int cid_mask = 1 << cid;
-  if(curr_mask == 0 && p->affinity_mask == 0)
-    curr_mask = 0b111;
-  else{
-    curr_mask = p->affinity_mask;
-  }
-  p->effective_affinity_mask = curr_mask - cid_mask;
   sched();
   release(&p->lock);
 }
