@@ -22,6 +22,7 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+int set_affinity_mask(int);
 int memsize(void);
 
 // ulib.c

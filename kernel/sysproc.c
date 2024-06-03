@@ -101,9 +101,19 @@ sys_uptime(void)
   return xticks;
 }
 
+uint64
+sys_set_affinity_mask(void)
+{
+  int mask;
+  argint(0, &mask);
+  myproc()->affinity_mask = mask;
+  return 0;
+}
+
 // return process' memory size in bytes
 uint64
-sys_memsize(void){
+sys_memsize(void)
+{
   int size;
   size = myproc()->sz;
   return size;
