@@ -56,6 +56,7 @@ procinit(void)
       p->state = UNUSED;
       p->kstack = KSTACK((int) (p - proc));
       p->affinity_mask = 0;
+      p->effective_affinity_mask = 0;
   }
 }
 
@@ -147,6 +148,7 @@ found:
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
   p->affinity_mask = 0;
+  p->effective_affinity_mask = 0;
 
   return p;
 }
@@ -171,6 +173,7 @@ freeproc(struct proc *p)
   p->killed = 0;
   p->xstate = 0;
   p->affinity_mask = 0;
+  p->effective_affinity_mask = 0;
   p->state = UNUSED;
 }
 
@@ -300,6 +303,7 @@ fork(void)
   np->sz = p->sz;
   // task5 copy affinity mask (can be done in uvmcopy instead)
   np->affinity_mask = p->affinity_mask;
+  np->effective_affinity_mask = p->affinity_mask;
 
   // copy saved user registers.
   *(np->trapframe) = *(p->trapframe);
@@ -458,12 +462,12 @@ scheduler(void)
   c->proc = 0;
   for(;;){
     // Avoid deadlock by ensuring that devices can interrupt.
-    intr_on();
     int cid = cpuid();
+    intr_on();
     int cid_mask = 1 << cid;
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
-      if(p->state == RUNNABLE && (p->affinity_mask == 0 || ((p->affinity_mask & cid_mask) > 0))) {
+      if(p->state == RUNNABLE && (p->effective_affinity_mask == 0 || ((p->effective_affinity_mask & cid_mask) > 0))) {
         // Switch to chosen process.  It is the process's job
         // to release its lock and then reacquire it
         // before jumping back to us.
@@ -502,6 +506,16 @@ sched(void)
     panic("sched running");
   if(intr_get())
     panic("sched interruptible");
+  
+  int curr_mask = p->effective_affinity_mask;
+  int cid = cpuid();
+  int cid_mask = 1 << cid;
+  if(curr_mask == 0 && p->affinity_mask == 0)
+    curr_mask = 0b111;
+  else{
+    curr_mask = p->affinity_mask;
+  }
+  p->effective_affinity_mask = curr_mask - cid_mask;
 
   intena = mycpu()->intena;
   swtch(&p->context, &mycpu()->context);
