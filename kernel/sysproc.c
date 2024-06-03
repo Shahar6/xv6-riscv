@@ -10,8 +10,18 @@ uint64
 sys_exit(void)
 {
   int n;
+  char exit_msg[32];
+  char nullrepresent[32];
+
   argint(0, &n);
-  exit(n);
+  argstr(1, exit_msg, sizeof(exit_msg));
+  fetchstr(0, nullrepresent, sizeof(nullrepresent));
+  if(strncmp(exit_msg, nullrepresent, sizeof(exit_msg)) == 0){
+    exit(n, "No exit message\n");
+  }
+  else{ // not required
+    exit(n, exit_msg);
+  }
   return 0;  // not reached
 }
 
@@ -30,9 +40,10 @@ sys_fork(void)
 uint64
 sys_wait(void)
 {
-  uint64 p;
+  uint64 p, p2;
   argaddr(0, &p);
-  return wait(p);
+  argaddr(1, &p2);
+  return wait(p, (char*)p2);
 }
 
 uint64
@@ -98,4 +109,13 @@ sys_set_affinity_mask(void)
   myproc()->affinity_mask = mask;
   myproc()->effective_affinity_mask = mask & myproc()->effective_affinity_mask;
   return 0;
+}
+
+// return process' memory size in bytes
+uint64
+sys_memsize(void)
+{
+  int size;
+  size = myproc()->sz;
+  return size;
 }
