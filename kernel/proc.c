@@ -510,12 +510,22 @@ sched(void)
   int curr_mask = p->effective_affinity_mask;
   int cid = cpuid();
   int cid_mask = 1 << cid;
+
+  // this is for the first run
   if(curr_mask == 0 && p->affinity_mask == 0)
     curr_mask = 0b111;
-  else{
+  else if(curr_mask == 0){
     curr_mask = p->affinity_mask;
   }
   p->effective_affinity_mask = curr_mask - cid_mask;
+  
+  curr_mask = p->effective_affinity_mask;
+  if(curr_mask == 0 && p->affinity_mask == 0)
+    curr_mask = 0b111;
+  else if(curr_mask == 0){
+    curr_mask = p->affinity_mask;
+  }
+  p->effective_affinity_mask = curr_mask;
 
   intena = mycpu()->intena;
   swtch(&p->context, &mycpu()->context);
