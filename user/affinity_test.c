@@ -14,5 +14,5 @@ main(int argc, char *argv[])
     pid = getpid();
     //printf("pid: %d\n", pid);
   }
-  exit(0);
+  exit(0,0);
 }
