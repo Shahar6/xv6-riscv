@@ -39,3 +39,8 @@ void free(void*);
 int atoi(const char*);
 int memcmp(const void *, const void *, uint);
 void *memcpy(void *, const void *, uint);
+
+int sys_channel_create(void);
+int sys_channel_put(int cd, int data);
+int sys_channel_take(int cd, int* data);
+int sys_channel_destroy(int cd);

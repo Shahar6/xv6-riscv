@@ -696,3 +696,108 @@ procdump(void)
     printf("\n");
   }
 }
+
+//TASK1
+int
+channel_create(void){
+  struct channel *c;
+  int index = 0;
+
+  for(c = channels; c < &channels[10]; c++){
+
+    acquire(&c->channelLock);
+    if(c->isValid == 0){
+      c->isValid = 1;
+      c->canWrite = 1;
+      c->pId = myproc()->pid;
+      release(&c->channelLock);
+      return index;
+    }
+    index++;
+    release(&c->channelLock);
+  }
+  return -1;
+}
+
+int
+channel_put(int cd, int data){
+    if(cd < 0 || cd >= NCHAN){
+      printf("Invalid channel index: %d\n", cd);
+      return -1;
+    }
+
+    struct channel *c = &channels[cd];
+    if(c->isValid == 0){
+      printf("Invalid channel");
+      return -1;
+    }
+
+    acquire(&c->channelLock);
+
+    // Wait until the channel is ready for writing
+    while(c->canWrite == 0 && c->isValid == 1){
+      sleep(c, &c->channelLock); 
+    }
+    if(c->isValid == 0){
+      printf("Invalid channel");
+      return -1;
+    }
+    c->canWrite = 0;
+    c->data = data;
+    wakeup(c);
+
+    release(&c->channelLock);
+    return 0; 
+}
+
+int 
+channel_take(int cd, int* data){
+  if(cd < 0 || cd >= NCHAN){
+      printf("Invalid channel index: %d\n", cd);
+      return -1;
+    }
+
+ struct channel *c = &channels[cd];
+    if(c->isValid == 0){
+      printf("Invalid channel");
+      return -1;
+    }
+  
+  acquire(&c->channelLock);
+  // Wait until the channel is ready for reading
+    while(c->canWrite == 0 && c->isValid == 1){
+      sleep(c, &c->channelLock); 
+    }
+    if(c->isValid == 0){
+      printf("Invalid channel");
+      return -1;
+    }
+    c->canWrite = 1;
+    wakeup(c);
+    release(&c->channelLock);
+    
+    copyout(myproc()->pagetable, (uint64) data , (char*) &c->data, sizeof(int)); // not sure about the &
+
+    return 0; 
+}
+
+
+int 
+channel_destroy(int cd){
+  if(cd < 0 || cd >= NCHAN){
+      printf("Invalid channel index: %d\n", cd);
+      return -1;
+  }
+
+  struct channel *c = &channels[cd];
+  
+  acquire(&c->channelLock);
+  if(c->isValid == 0){
+      printf("Invalid channel");
+      return -1;
+  }
+  c->isValid = 0;
+  release(&c->channelLock);
+  wakeup(c);
+  return 0;
+}
