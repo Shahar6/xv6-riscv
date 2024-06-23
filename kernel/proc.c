@@ -9,6 +9,8 @@
 struct cpu cpus[NCPU];
 
 struct proc proc[NPROC];
+//TASK1
+struct channel channels[NCHAN];
 
 struct proc *initproc;
 
@@ -55,6 +57,19 @@ procinit(void)
       initlock(&p->lock, "proc");
       p->state = UNUSED;
       p->kstack = KSTACK((int) (p - proc));
+  }
+}
+
+//TASK1
+void
+chaninit(void){
+
+  struct channel *c;
+
+  for(c = channels; c < &channels[NCHAN]; c++){
+    initlock(&c->channelLock, "channel");
+    c->canWrite = 0;
+    c->isValid = 0;
   }
 }
 
