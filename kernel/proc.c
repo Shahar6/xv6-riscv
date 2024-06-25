@@ -734,7 +734,6 @@ channel_create(void){
   int index = 0;
 
   for(c = channels; c < &channels[10]; c++){
-
     acquire(&c->channelLock);
     if(c->isValid == 0){
       c->isValid = 1;
@@ -752,13 +751,13 @@ channel_create(void){
 int
 channel_put(int cd, int data){
     if(cd < 0 || cd >= NCHAN){
-      printf("Invalid channel index: %d\n", cd);
+      //printf("Invalid channel index: %d\n", cd);
       return -1;
     }
 
     struct channel *c = &channels[cd];
     if(c->isValid == 0){
-      printf("Invalid channel: %d\n", cd);
+      //printf("Invalid channel: %d\n", cd);
       return -1;
     }
 
@@ -772,7 +771,7 @@ channel_put(int cd, int data){
 
     if(c->isValid == 0){
       release(&c->channelLock);
-      printf("Invalid channel2: %d\n", cd);
+      //printf("Invalid channel 2: %d\n", cd);
       return -1;
     }
     c->canWrite = 0;
@@ -786,13 +785,13 @@ channel_put(int cd, int data){
 int 
 channel_take(int cd, uint64 addr){
   if(cd < 0 || cd >= NCHAN){
-      printf("Invalid channel index: %d\n", cd);
+      //printf("Invalid channel index: %d\n", cd);
       return -1;
     }
 
   struct channel *c = &channels[cd];
   if(c->isValid == 0){
-      printf("Invalid channel3: %d\n", cd);
+      //printf("Invalid channel 3: %d\n", cd);
       return -1;
   }
   
@@ -807,7 +806,7 @@ channel_take(int cd, uint64 addr){
     c->canWrite = 1;
     if(c->isValid == 0){
       release(&c->channelLock);
-      printf("Invalid channel4: %d\n", cd);
+      //printf("Invalid channel 4: %d\n", cd);
       return -1;
     }
     
@@ -815,7 +814,7 @@ channel_take(int cd, uint64 addr){
     //printf("in channel_take, data= %d\n", c->data);
 
     if (copyout(myproc()->pagetable, addr, (char*)&c->data, sizeof(c->data)) < 0) {
-        printf("Error - copyout");
+        //printf("Error - copyout");
         return -1;
     }
     wakeup(&c->canWrite);
@@ -830,7 +829,7 @@ channel_take(int cd, uint64 addr){
 int 
 channel_destroy(int cd){
   if(cd < 0 || cd >= NCHAN){
-      printf("Invalid channel index: %d\n", cd);
+      //printf("Invalid channel index: %d\n", cd);
       return -1;
   }
 
@@ -838,7 +837,8 @@ channel_destroy(int cd){
   
   acquire(&c->channelLock);
   if(c->isValid == 0){
-      printf("Invalid channel\n");
+      release(&c->channelLock);
+      //printf("Invalid channel\n");
       return -1;
   }
   c->isValid = 0;
