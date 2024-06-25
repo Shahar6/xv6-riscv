@@ -89,3 +89,43 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+//TASK1
+uint64
+sys_channel_create(void){
+   return channel_create();
+}
+
+uint64
+sys_channel_put(void){
+  int cd;
+  int data;
+
+  argint(0, &cd);
+  argint(1,&data);
+
+  return channel_put(cd, data);
+}
+
+uint64
+sys_channel_take(void){
+  int cd;
+  uint64 user_data_ptr;  // Use uint64 to hold user-space pointer
+
+    // Retrieve the first integer argument (channel descriptor)
+    argint(0, &cd);
+    // Retrieve the second argument, which is a pointer to the user-space data variable
+    argaddr(1, &user_data_ptr);
+
+    // Pass the user-space pointer directly to channel_take
+    return channel_take(cd, user_data_ptr);
+}
+
+uint64
+sys_channel_destroy(void){
+  int cd;
+
+  argint(0, &cd);
+
+  return channel_destroy(cd);
+}
