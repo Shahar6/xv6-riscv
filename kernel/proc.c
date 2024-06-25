@@ -362,6 +362,16 @@ void
 exit(int status)
 {
   struct proc *p = myproc();
+  //TASK1
+  // int pid = p->pid;
+  // struct channel *c;
+  // int index = 0;
+  // for(c = channels; c < &channels[NCHAN]; c++){
+  //   if(c->pId == pid){
+  //     channel_destroy(index);
+  //   }
+  //   index++;
+  // }
 
   if(p == initproc)
     panic("init exiting");
@@ -373,6 +383,16 @@ exit(int status)
       fileclose(f);
       p->ofile[fd] = 0;
     }
+  }
+
+  //TASK1
+  struct channel *c;
+  int index = 0;
+  for(c = channels; c < &channels[NCHAN]; c++){
+    if(c->pId == p->pid){
+      channel_destroy(index);
+    }
+    index++;
   }
 
   begin_op();
@@ -610,6 +630,16 @@ kill(int pid)
         // Wake process from sleep().
         p->state = RUNNABLE;
       }
+      //TASK1
+      struct channel *c;
+      int index = 0;
+      for(c = channels; c < &channels[NCHAN]; c++){
+        if(c->pId == pid){
+          channel_destroy(index);
+        }
+        index++;
+      }
+
       release(&p->lock);
       return 0;
     }
@@ -728,56 +758,71 @@ channel_put(int cd, int data){
 
     struct channel *c = &channels[cd];
     if(c->isValid == 0){
-      printf("Invalid channel");
+      printf("Invalid channel: %d\n", cd);
       return -1;
     }
 
     acquire(&c->channelLock);
-
+    //printf("channel_put before while\n");
     // Wait until the channel is ready for writing
     while(c->canWrite == 0 && c->isValid == 1){
-      sleep(c, &c->channelLock); 
+      sleep(&c->canWrite, &c->channelLock); 
     }
+    //printf("channel_put after while\n");
+
     if(c->isValid == 0){
-      printf("Invalid channel");
+      release(&c->channelLock);
+      printf("Invalid channel2: %d\n", cd);
       return -1;
     }
     c->canWrite = 0;
     c->data = data;
-    wakeup(c);
+    wakeup(c); // wakeup before release?
 
     release(&c->channelLock);
     return 0; 
 }
 
 int 
-channel_take(int cd, int* data){
+channel_take(int cd, uint64 addr){
   if(cd < 0 || cd >= NCHAN){
       printf("Invalid channel index: %d\n", cd);
       return -1;
     }
 
- struct channel *c = &channels[cd];
-    if(c->isValid == 0){
-      printf("Invalid channel");
+  struct channel *c = &channels[cd];
+  if(c->isValid == 0){
+      printf("Invalid channel3: %d\n", cd);
       return -1;
-    }
+  }
   
   acquire(&c->channelLock);
   // Wait until the channel is ready for reading
-    while(c->canWrite == 0 && c->isValid == 1){
+    //printf("channel_take before while\n");
+
+    while(c->canWrite == 1 && c->isValid == 1){
       sleep(c, &c->channelLock); 
     }
+    //printf("channel_take after while\n");
+    c->canWrite = 1;
     if(c->isValid == 0){
-      printf("Invalid channel");
+      release(&c->channelLock);
+      printf("Invalid channel4: %d\n", cd);
       return -1;
     }
-    c->canWrite = 1;
-    wakeup(c);
-    release(&c->channelLock);
     
-    copyout(myproc()->pagetable, (uint64) data , (char*) &c->data, sizeof(int)); // not sure about the &
+    
+    //printf("in channel_take, data= %d\n", c->data);
 
+    if (copyout(myproc()->pagetable, addr, (char*)&c->data, sizeof(c->data)) < 0) {
+        printf("Error - copyout");
+        return -1;
+    }
+    wakeup(&c->canWrite);
+    release(&c->channelLock);
+
+    //copyout(myproc()->pagetable, (uint64) data , (char*) &c->data, sizeof(c->data)); // not sure about the &
+    //copyout(myproc()->pagetable, (uint64)user_data_ptr, (char *)&kernel_data, sizeof(kernel_data))
     return 0; 
 }
 
@@ -793,11 +838,13 @@ channel_destroy(int cd){
   
   acquire(&c->channelLock);
   if(c->isValid == 0){
-      printf("Invalid channel");
+      printf("Invalid channel\n");
       return -1;
   }
   c->isValid = 0;
-  release(&c->channelLock);
+  release(&c->channelLock); // release before wakeup? need to figure it out
   wakeup(c);
+  wakeup(&c->canWrite);
+
   return 0;
 }

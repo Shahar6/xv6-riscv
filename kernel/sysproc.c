@@ -110,12 +110,15 @@ sys_channel_put(void){
 uint64
 sys_channel_take(void){
   int cd;
-  int* data;
+  uint64 user_data_ptr;  // Use uint64 to hold user-space pointer
 
-  argint(0, &cd);
-  argint(1, &data);
+    // Retrieve the first integer argument (channel descriptor)
+    argint(0, &cd);
+    // Retrieve the second argument, which is a pointer to the user-space data variable
+    argaddr(1, &user_data_ptr);
 
-  return channel_take(cd, data);
+    // Pass the user-space pointer directly to channel_take
+    return channel_take(cd, user_data_ptr);
 }
 
 uint64
